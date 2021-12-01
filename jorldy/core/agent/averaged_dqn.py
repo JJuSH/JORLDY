@@ -71,9 +71,8 @@ class Averaged_DQN(BaseAgent):
         self.network = Network(
             network, state_size, action_size, D_hidden=hidden_size, head=head
         ).to(self.device)
-
-        self.targets = []
         self.num_targets = num_targets
+        self.targets = []
         for i in range(num_targets):
             self.targets.append( Network(
                 network, state_size, action_size, D_hidden=hidden_size, head=head
@@ -113,17 +112,6 @@ class Averaged_DQN(BaseAgent):
             )
             action = np.random.randint(0, self.action_size, size=(batch_size, 1))
         else:
-            #average_tot_q = self.network(self.as_tensor(state))
-            #for i in range(self.num_target):
-            #    average_tot_q = average_tot_q + self.target[i](self.as_tensor(state))
-
-            #average_tot_q = average_tot_q * ( 1 / (1 + self.num_target) )
-            #action = (
-            #     torch.argmax(average_tot_q, -1, keepdim=True)
-            #     .cpu()
-            #     .numpy()
-            #)
-
             action = (
                 torch.argmax(self.network(self.as_tensor(state)), -1, keepdim=True)
                 .cpu()
