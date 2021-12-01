@@ -71,6 +71,7 @@ class Averaged_DQN(BaseAgent):
         self.network = Network(
             network, state_size, action_size, D_hidden=hidden_size, head=head
         ).to(self.device)
+        #test
         self.num_targets = num_targets
         self.targets = []
         for i in range(num_targets):
