@@ -1,6 +1,7 @@
 ### Network Dictionary ###
 format: (key, class)
 ------------------------
+('averaged_dqn', <class 'core.network.averaged_dqn.Averaged_DQN'>)
 ('continuous_policy', <class 'core.network.policy.ContinuousPolicy'>)
 ('continuous_policy_separate_value', <class 'core.network.policy_value.ContinuousPolicySeparateValue'>)
 ('continuous_policy_value', <class 'core.network.policy_value.ContinuousPolicyValue'>)

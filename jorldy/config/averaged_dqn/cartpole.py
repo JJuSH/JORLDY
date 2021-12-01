@@ -6,8 +6,8 @@ env = {
 }
 
 agent = {
-    "name": "dqn",
-    "network": "dqn",
+    "name": "averaged_dqn",
+    "network": "averaged_dqn",
     "gamma": 0.99,
     "epsilon_init": 1.0,
     "epsilon_min": 0.01,
@@ -16,6 +16,7 @@ agent = {
     "batch_size": 32,
     "start_train_step": 2000,
     "target_update_period": 1000,
+    "num_targets" : 10,
 }
 
 optim = {
