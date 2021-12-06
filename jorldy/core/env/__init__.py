@@ -24,6 +24,7 @@ for module_name in module_list:
     except Exception:
         all_modules_available = False
         error_dict[module_name] = traceback.format_exc()
+        print("env init exception :" + module_name)
         continue
     else:
         for class_name, _class in inspect.getmembers(module, inspect.isclass):

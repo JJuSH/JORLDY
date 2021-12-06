@@ -72,11 +72,9 @@ class Averaged_DQN(BaseAgent):
             network, state_size, action_size, D_hidden=hidden_size, head=head
         ).to(self.device)
         self.num_targets = num_targets
-        self.targets = []
+        self.targets = [Network(network, state_size, action_size, D_hidden=hidden_size, head=head
+            ).to(self.device) for _ in range(num_targets)]
         for i in range(num_targets):
-            self.targets.append( Network(
-                network, state_size, action_size, D_hidden=hidden_size, head=head
-            ).to(self.device) )
             self.targets[i].load_state_dict(self.network.state_dict())
 
         #self.target_network = Network(
