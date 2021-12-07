@@ -78,7 +78,6 @@ if __name__ == "__main__":
             agent.load(config.train.load_path)
 
         save_path = path_queue.get()
-        env.reset()
         """
         for step in range(1, config.train.run_step + 1):
             action_dict = agent.act(state, config.train.training)
@@ -108,43 +107,61 @@ if __name__ == "__main__":
         step_cnt = 0
         done_cnt = 0
         obs_0_idx = np.eye(env_info["n_agents"])
-        actions_last = env.last_action
-        hidden_last = np.zeros((env_info["n_agents"], 64))
-        for epi_step_cnt in range(1, config.train.run_step + 1):
-            step_cnt += 1 # update the cnt every time
-  
-            # get obs state for select action
-            state = env.get_state()
-            obs = np.concatenate([obs_0_idx, np.array(env.get_obs())], axis=1)
-            avail_actions = np.array(env.get_avail_actions())
-  
-            # interact with the env and get new state obs
-            actions, hidden = agent.act(avail_actions, obs, actions_last, hidden_last, args)
-            reward, done, _ = env.step(actions)
-            reward = reward*config.train.reward_scale_par # normalize the reward
-            if epi_step_cnt == config.train.per_episode_max_len-1: done = True # max len of   episode
-            state_new = env.get_state()
-            obs_new = np.concatenate([obs_0_idx, np.array(env.get_obs())], axis=1)
-            avail_actions_new = np.array(env.get_avail_actions())
-            actions_now_onehot = env.last_action # the env do the things for us
-  
-            # update the date and save experience to memory
-            if done == True: done_cnt += 1
-  
-            # concatenate the obs and actions_last for speed up the train
-            agent.save_memory(np.concatenate([obs, actions_last], axis=-1), state, 
-                    actions.reshape(1, -1), avail_actions_new, np.concatenate([obs_new, actions_now_onehot],
-                    axis=-1), state_new, reward, done)
+        for epi_cnt in range(config.train.max_episode):
+            print(f"episode {epi_cnt} start \n")
+            env.reset()
+            episode_reward = 0
             actions_last = env.last_action
-            hidden_last = hidden
+            hidden_last = np.zeros((env_info["n_agents"], 64))
+            agent.memory.create_new_episode()
+            for epi_step_cnt in range(1, config.train.run_step + 1):
+                print(f"step {epi_step_cnt} \n")
+                step_cnt += 1 # update the cnt every time
   
-            # agents learn
-            loss = agent.learn(step_cnt, epi_cnt, args)
-            print(' '*80, 'loss is', loss, end='\r')
+                # get obs state for select action
+                state = env.get_state()
+                obs = np.concatenate([obs_0_idx, np.array(env.get_obs())], axis=1)
+                avail_actions = np.array(env.get_avail_actions())
   
-            # if done, end the episode
-            episode_reward += reward
-            if done: break
+                # interact with the env and get new state obs
+                actions, hidden = agent.act(avail_actions, obs, actions_last, hidden_last, args)
+                reward, done, _ = env.step(actions)
+                reward = reward*config.train.reward_scale_par # normalize the reward
+                if epi_step_cnt == config.train.per_episode_max_len-1: done = True # max len of   episode
+                state_new = env.get_state()
+                obs_new = np.concatenate([obs_0_idx, np.array(env.get_obs())], axis=1)
+                avail_actions_new = np.array(env.get_avail_actions())
+                actions_now_onehot = env.last_action # the env do the things for us
+  
+                # update the date and save experience to memory
+                if done == True: done_cnt += 1
+  
+                #concatenate the obs and actions_last for speed up the train
+                agent.save_memory(np.concatenate([obs, actions_last], axis=-1), state, actions.reshape(1, -1), avail_actions_new, np.concatenate([obs_new, actions_now_onehot], axis=-1), state_new, reward, done)
+                """
+                transition={
+                        "obs" : obs,
+                        "actions_last" : actions_last,
+                        "state": state,
+                        "actions_reshaped" : actions.reshape(1,-1),
+                        "avail_actions_new" : avail_actions_new,
+                        "obs_new" : obs_new,
+                        "actions_now_onehot" : actions_now_onehot,
+                        "state_new" : state_new,
+                        "reward" : reward,
+                        "done" : done,
+                }
+                """
+                actions_last = env.last_action
+                hidden_last = hidden
+  
+                # agents learn
+                loss = agent.learn(step_cnt, epi_cnt)
+                print(' '*80, 'loss is', loss, end='\r')
+  
+                # if done, end the episode
+                episode_reward += reward
+                if done: break
 
     except Exception as e:
         traceback.print_exc()

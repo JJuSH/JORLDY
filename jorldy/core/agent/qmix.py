@@ -13,6 +13,7 @@ import torch.nn as nn
 from core.network import Network
 from core.optimizer import Optimizer
 from core.buffer import ReplayBuffer
+from core.buffer import MaReplayBuffer
 
 class QMIX():
     def __init__(
@@ -60,7 +61,7 @@ class QMIX():
         self.last_cnt4update = 0
         self.last_epi_cnt = 0
         self.mse_loss = F.mse_loss
-        self.memory = ReplayBuffer(buffer_size)
+        self.memory = MaReplayBuffer(buffer_size)
         self.learned_cnt = 0
         self.learning_start_episode = learning_start_episode
         self.max_grad_norm = max_grad_norm 
@@ -104,7 +105,6 @@ class QMIX():
         self.mixing_net = Mixing_Network(max(self.num_actions_set), self.num_agents, args).to(args.device)
         self.q_net_cur = torch.load(args.old_model_name+'q_net.pkl', map_location=args.device)
         self.hyper_net_cur = torch.load(args.old_model_name+'hyper_net.pkl', map_location=args.device)
-
     def save_memory(self, obs_and_u_last, state, \
                 u, new_avail_actions, new_obs_and_u, state_new, r, done):
         r = np.array([r])[np.newaxis, :]
