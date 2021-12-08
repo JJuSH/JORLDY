@@ -85,10 +85,12 @@ class QMIX():
         #self.q_net_tar = Q_Network(self.shape_obs, max(self.num_actions_set), args).to(args.device)
         self.q_net_tar = Network(
             agent_network, self.shape_obs, max(self.num_actions_set), self.q_net_hidden_size, self.q_net_out).to(self.device)
+        self.q_net_tar.init_hidden()
 
         #self.q_net_cur = Q_Network(self.shape_obs, max(self.num_actions_set), args).to(args.device)
         self.q_net_cur = Network(
             agent_network, self.shape_obs, max(self.num_actions_set), self.q_net_hidden_size, self.q_net_out).to(self.device)
+        self.q_net_cur.init_hidden()
 
         #self.hyper_net_tar = Hyper_Network(self.shape_state, self.mixing_net.pars, args).to(args.device)
         self.hyper_net_tar = Network(
@@ -176,12 +178,19 @@ class QMIX():
                 q_tar.append(q_values_tar.view(self.batch_size, self.num_agents, -1))
         
         q_cur = torch.stack(q_cur, dim=1)
+        q_tar = torch.stack(q_tar, dim=1)
+        #breakpoint()
+
+        #q_cur_detach = q_cur.clone().detach()
+        #q_cur_detach[new_avail_act_t_b == 0] = float('-inf')
+        #q_cur_max_actions = q_cur_detach.max(dim = -1, keepdim=True)[1]
+        #q_tar = torch.gather(q_tar, -1, q_cur_max_actions).detach().view(-1, 1, self.num_agents)
+
         q_cur = torch.gather(q_cur, -1, torch.transpose(u_t_b, -1, -2))
         q_cur = torch.squeeze(q_cur).view(-1, 1, self.num_agents)
-        q_tar = torch.stack(q_tar, dim=1)
-        q_tar[~new_avail_act_t_b] = float('-inf')
+        q_tar[new_avail_act_t_b == 0] = float('-inf')
         q_tar = torch.max(q_tar, dim=-1)[0].detach().view(-1, 1, self.num_agents)
-
+        
         """step3 cal the qtot_cur and qtot_tar by hyper_network"""
         qtot_cur = self.mixing_net(q_cur, self.hyper_net_cur(state_t_b.view(self.batch_size*max_episode_len, -1)))
         qtot_tar = self.mixing_net( q_tar, \

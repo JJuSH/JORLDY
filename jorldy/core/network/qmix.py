@@ -10,6 +10,7 @@ class Q_Network(nn.Module):
         self.mlp_out_layer = nn.Linear(q_net_hidden_size, act_size)
         self.GRU_layer = nn.GRUCell(q_net_out[0], q_net_hidden_size)
         self.ReLU = nn.ReLU()
+        self.q_net_hidden_size = q_net_hidden_size
 
         self.train()
 
@@ -17,8 +18,8 @@ class Q_Network(nn.Module):
         nn.init.xavier_uniform_(self.mlp_in_layer.weight)
         nn.init.xavier_uniform_(self.mlp_out_layer.weight)
     
-    def init_hidden(self, args):
-        return self.mlp_in_layer.weight.new(1, args.q_net_hidden_size).zero_()
+    def init_hidden(self):
+        return self.mlp_in_layer.weight.new(1, self.q_net_hidden_size).zero_()
 
     def forward(self, obs_a_cat, hidden_last):
         x = self.ReLU(self.mlp_in_layer(obs_a_cat))

@@ -8,8 +8,30 @@ from core import *
 from manager import *
 from process import *
 
+import matplotlib
+import matplotlib.pyplot as plt
+
 # default_config_path = "config.YOUR_AGENT.YOUR_ENV"
 default_config_path = "config.qmix.smac"
+
+def plot_return(time_step, ret):
+      t = open("./result/time.txt", 'w')
+      r = open("./result/return.txt", 'w')
+      
+      for i in time_step:
+          data = "%d " % i
+          t.write(data)
+      for i in ret:
+          data = "%f " % i
+          r.write(data)
+  
+      t.close()
+      r.close()
+      plt.title('Training return')
+      plt.xlabel('timestep')
+      plt.ylabel('Training return')
+      plt.plot(time_step, ret)
+      plt.show()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -107,11 +129,14 @@ if __name__ == "__main__":
         step_cnt = 0
         done_cnt = 0
         obs_0_idx = np.eye(env_info["n_agents"])
+        time_step = []
+        ret = []
+        ret_cur = 0
         for epi_cnt in range(config.train.max_episode):
             env.reset()
             episode_reward = 0
             actions_last = env.last_action
-            hidden_last = np.zeros((env_info["n_agents"], 64))
+            hidden_last = np.zeros((env_info["n_agents"], config.agent.q_net_hidden_size))
             agent.memory.create_new_episode()
             for epi_step_cnt in range(1, config.train.run_step + 1):
                 step_cnt += 1 # update the cnt every time
@@ -165,6 +190,12 @@ if __name__ == "__main__":
                 if done: break
 
             loss = agent.learn(step_cnt, epi_cnt)
+            ret_cur += 0.1 * episode_reward
+            if epi_cnt % 10 == 0 and epi_cnt >= 10:
+                time_step.append(step_cnt)
+                ret.append(ret_cur)
+                ret_cur = 0
+
             print(f"episode : {epi_cnt} , step_cnt : {step_cnt}, loss : {loss} , reward : {episode_reward} , epsilon : {agent.epsilon},  \n")
 
     except Exception as e:
@@ -175,6 +206,7 @@ if __name__ == "__main__":
         manage.join()
         print("Manage process done.")
     finally:
+        plot_return(time_step, ret)
         result_queue.close()
         manage_sync_queue.close()
         path_queue.close()
