@@ -29,7 +29,7 @@ class QMIX():
             hyper_network = "q_hyper_network",
             mixing_network = "q_mixing_network",
             epsilon_init = 1.0,
-            epsilon_min = 0.1,
+            epsilon_min = 0.05,
             gamma = 0.99,
             anneal_par = 0.000019,
             explore_ratio = 0.1,
