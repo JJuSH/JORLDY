@@ -108,14 +108,12 @@ if __name__ == "__main__":
         done_cnt = 0
         obs_0_idx = np.eye(env_info["n_agents"])
         for epi_cnt in range(config.train.max_episode):
-            print(f"episode {epi_cnt} start \n")
             env.reset()
             episode_reward = 0
             actions_last = env.last_action
             hidden_last = np.zeros((env_info["n_agents"], 64))
             agent.memory.create_new_episode()
             for epi_step_cnt in range(1, config.train.run_step + 1):
-                print(f"step {epi_step_cnt} \n")
                 step_cnt += 1 # update the cnt every time
   
                 # get obs state for select action
@@ -156,12 +154,18 @@ if __name__ == "__main__":
                 hidden_last = hidden
   
                 # agents learn
-                loss = agent.learn(step_cnt, epi_cnt)
-                print(' '*80, 'loss is', loss, end='\r')
-  
+                #loss = agent.learn(step_cnt, epi_cnt)
+                #print(' '*80, 'loss is', loss, end='\r')
+                #print(f"episode : {epi_cnt} , step_cnt : {step_cnt}, loss : {loss} , reward : {episode_reward} , epsilon : {agent.epsilon},  \n")
+
                 # if done, end the episode
                 episode_reward += reward
+                if agent.epsilon > agent.epsilon_min :
+                    agent.epsilon -= agent.anneal_par
                 if done: break
+
+            loss = agent.learn(step_cnt, epi_cnt)
+            print(f"episode : {epi_cnt} , step_cnt : {step_cnt}, loss : {loss} , reward : {episode_reward} , epsilon : {agent.epsilon},  \n")
 
     except Exception as e:
         traceback.print_exc()

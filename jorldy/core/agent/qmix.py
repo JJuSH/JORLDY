@@ -31,15 +31,15 @@ class QMIX():
             epsilon_init = 1.0,
             epsilon_min = 0.1,
             gamma = 0.99,
-            anneal_par = 0.0004075,
+            anneal_par = 0.000019,
             explore_ratio = 0.1,
-            buffer_size = 50000,
+            buffer_size = 5000,
             learning_fre = 1,
             max_grad_norm = 6,
             batch_size = 32,
             start_train_step = 2000,
-            learning_start_episode = 1000,
-            target_update_period = 1000,
+            learning_start_episode = 500,
+            target_update_period = 200,
             q_net_out = [64, 64],
             mix_net_out = [32, 1],
             q_net_hidden_size = 64,
@@ -63,11 +63,14 @@ class QMIX():
         self.mse_loss = F.mse_loss
         self.memory = MaReplayBuffer(buffer_size)
         self.learned_cnt = 0
+        self.target_update_period = target_update_period
         self.learning_start_episode = learning_start_episode
         self.max_grad_norm = max_grad_norm 
         self.learning_fre = learning_fre
+        self.gamma = gamma
         self.batch_size = batch_size
         self.anneal_par = anneal_par
+        self.epsilon_min = epsilon_min
         self.q_net_out = q_net_out
         self.mix_net_out = mix_net_out
         self.q_net_hidden_size = q_net_hidden_size
@@ -135,7 +138,6 @@ class QMIX():
         epsilons_choice = torch.rand(max_actions.shape) < self.epsilon # e-greedy choose the idx 
         max_actions[epsilons_choice] = avail_actions_random[epsilons_choice] if eval_flag == False else \
             max_actions[epsilons_choice]# exchange the data
-
         return max_actions.detach().cpu().numpy(), hidden.detach().cpu().numpy()
 
     def cal_totq_values(self, batch_data):
@@ -172,7 +174,7 @@ class QMIX():
             else:
                 q_cur.append(q_values_cur.view(self.batch_size, self.num_agents, -1))
                 q_tar.append(q_values_tar.view(self.batch_size, self.num_agents, -1))
-
+        
         q_cur = torch.stack(q_cur, dim=1)
         q_cur = torch.gather(q_cur, -1, torch.transpose(u_t_b, -1, -2))
         q_cur = torch.squeeze(q_cur).view(-1, 1, self.num_agents)
@@ -189,12 +191,13 @@ class QMIX():
         return qtot_cur, qtot_tar
         
     def learn(self, step_cnt, epi_cnt):
-        loss = 0.0 
+        loss = 0.0
         if epi_cnt < self.learning_start_episode: return
-        if epi_cnt <= self.last_epi_cnt: return
-        self.last_epi_cnt = epi_cnt
-        if self.epsilon > 0.08 : self.epsilon -= self.anneal_par
-        if epi_cnt % self.learning_fre != 0: return
+        #if self.epsilon > self.epsilon_min : self.epsilon -= self.anneal_par
+        #if epi_cnt <= self.last_epi_cnt: return
+        #self.last_epi_cnt = epi_cnt
+        #if self.epsilon > self.epsilon_min : self.epsilon -= self.anneal_par
+        #if epi_cnt % self.learning_fre != 0: return
         self.learned_cnt += 1
 
         """ step1: get the batch data from the memory and change to tensor"""
@@ -220,6 +223,7 @@ class QMIX():
         nn.utils.clip_grad_norm_(self.q_net_cur.parameters(), self.max_grad_norm)
         nn.utils.clip_grad_norm_(self.hyper_net_cur.parameters(), self.max_grad_norm)
         self.optimizer.step()
+        print("---------------------------learning finished-------------------------------")
 
         """ step4: update the tar and cur network """
         if epi_cnt > self.learning_start_episode and \
@@ -228,6 +232,7 @@ class QMIX():
             self.last_cnt4update = epi_cnt
             self.hyper_net_tar.load_state_dict(self.hyper_net_cur.state_dict()) # update the tar net par
             self.q_net_tar.load_state_dict(self.q_net_cur.state_dict()) # update the tar net par
+            print("----------------target updated-------------------")
 
         """ step6: save the model """
         """
